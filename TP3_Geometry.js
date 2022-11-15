@@ -18,7 +18,57 @@ TP3.Geometry = {
 
 	simplifySkeleton: function (rootNode, rotationThreshold = 0.0001) {
 		//TODO
-	},
+		// Faire le parcours recursif des enfant d'un noeud
+		// Si l'enfant n'a qu'un seul enfant et que l'agnle entre les
+		// deux vecteurs est plus petits que rotationThreshold, retirer l'enfant
+		// relier le petit enfant au parents et poursuivre
+
+
+		if (rootNode.childNode.length == 1) {
+			let c = rootNode.childNode[0];
+
+			//make vector from point of segments
+			// let v1 = rootNode.p0.sub(c.p0)
+			// let v2 = c.p1.sub(c.p0)
+			let v1 = new THREE.Vector3();
+			let v2 = new THREE.Vector3();
+
+			v1.subVectors(rootNode.p0,c.p0);
+			v2.subVectors(c.p1,c.p0);
+
+			let angle = this.findRotation(v1, v2);
+
+			if (angle[1] - Math.PI < rotationThreshold){
+				//node is removed
+				c.childNode[0].parentNode = rootNode;
+				rootNode.childNode= c.childNode;
+				rootNode.p1 = c.p1;
+				rootNode.a1 = c.a1;
+
+				//NULL c
+				c.childNode = null;
+				c.parentNode = null;
+				this.simplifySkeleton(rootNode);
+			} else {
+				this.simplifySkeleton(c)
+			}
+		} else if (rootNode.childNode.length > 1) {
+			for (let i = 0; i < rootNode.childNode.length; i++) {
+				let ntc = rootNode.childNode[i];
+				this.simplifySkeleton(ntc);
+			}
+			// explore tous les child nodes recursivement
+		} else if (rootNode.childNode.length == 0) {
+			// fini d'explorer cette branches, nous sommes a une extremite
+			// et donc rien a simplifier ici
+		}
+
+		// might need to change this if ever our tree doesn't start at 0,0,0
+		if (rootNode.p0 == new THREE.Vector3(0,0,0) ){
+			return rootNode;
+		}
+	}
+	,
 
 	generateSegmentsHermite: function (rootNode, lengthDivisions = 4, radialDivisions = 8) {
 		//TODO
@@ -60,4 +110,9 @@ TP3.Geometry = {
 
 		return mp.divideScalar(points.length);
 	},
+
+	print:function(p){
+		console.log(p)
+	},
+
 };
