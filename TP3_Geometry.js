@@ -28,8 +28,6 @@ TP3.Geometry = {
 			let c = rootNode.childNode[0];
 
 			//make vector from point of segments
-			// let v1 = rootNode.p0.sub(c.p0)
-			// let v2 = c.p1.sub(c.p0)
 			let v1 = new THREE.Vector3();
 			let v2 = new THREE.Vector3();
 
