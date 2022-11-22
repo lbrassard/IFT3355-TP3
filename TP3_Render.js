@@ -86,17 +86,18 @@ TP3.Render = {
 			// passer la matrice de position de la branche pour positioner les feuilles
 			// placer les feuilles sur les noeuds terminaux
 			if (rootNode.a0 < alpha*leavesCutoff) {
-				let material = new THREE.MeshPhongMaterial({color: 0x3A5F0B});
-				let geometry = new THREE.PlaneBufferGeometry(alpha,alpha);
-				var plane = new THREE.Mesh(geometry,material);
+				let tm = new THREE.Matrix4().copy(translationMatrix);
 				for (var i = 0; i<leavesDensity; i++){
 
+					let material = new THREE.MeshPhongMaterial({color: 0x3A5F0B});
+					let geometry = new THREE.PlaneBufferGeometry(alpha,alpha);
+					var plane = new THREE.Mesh(geometry,material);
 
 					//create random rotation matrix in a range (0 - 2pi)
 					let rotationMatrix = new THREE.Matrix4().identity();
 					let rotX = new THREE.Matrix4().makeRotationX(THREE.MathUtils.randFloat(0,2*Math.PI));
-					let rotY = new THREE.Matrix4().makeRotationX(THREE.MathUtils.randFloat(0,2*Math.PI));
-					let rotZ = new THREE.Matrix4().makeRotationX(THREE.MathUtils.randFloat(0,2*Math.PI));
+					let rotY = new THREE.Matrix4().makeRotationY(THREE.MathUtils.randFloat(0,2*Math.PI));
+					let rotZ = new THREE.Matrix4().makeRotationZ(THREE.MathUtils.randFloat(0,2*Math.PI));
 
 					rotationMatrix.multiplyMatrices(rotationMatrix,rotX);
 					rotationMatrix.multiplyMatrices(rotationMatrix,rotY);
@@ -109,25 +110,26 @@ TP3.Render = {
 					let y_rand = THREE.MathUtils.randFloat(-alpha/2,alpha/2);
 					let z_rand = THREE.MathUtils.randFloat(-alpha/2,alpha/2);
 					let translation = new THREE.Matrix4().makeTranslation(x_rand,y_rand,z_rand);
-					let leafTranslation =new THREE.Matrix4().multiplyMatrices(translation,translationMatrix.clone())
+					let leafTranslation =new THREE.Matrix4().multiplyMatrices(translation,tm)
 
 					let transform = new THREE.Matrix4().multiplyMatrices(leafTranslation,rotationMatrix);
 
-					plane.applyMatrix(transform);
+					plane.applyMatrix4(transform);
 					scene.add(plane);
 				}
 
 
 				// placer les pommes
 
-				// if (THREE.MathUtils.randFloat(0,1) < applesProbability ){
-				// 	let material_apple = new THREE.MeshPhongMaterial({color: 0x5F0B0B});
-				// 	let geometry = new THREE.CubeGeometry(alpha,alpha,alpha);
-				// 	let cube = new THREE.Mesh(geometry,material_apple);
-				// 	//placer à la fin de la branche
-				// 	// cur étant le vecteur qui represente la branche entre rootNode.p0 et rootNode.p1
-				// 	let m = matrix.copy.makeTranslation(cur.x,cur.y,cur.z);
-				// }
+				if (THREE.MathUtils.randFloat(0,1) < applesProbability ){
+					let material_apple = new THREE.MeshPhongMaterial({color: 0x5F0B0B});
+					let geometry = new THREE.BoxBufferGeometry(alpha,alpha,alpha);
+					let cube = new THREE.Mesh(geometry,material_apple);
+					//placer à la fin de la branche
+					// cur étant le vecteur qui represente la branche entre rootNode.p0 et rootNode.p1
+					cube.applyMatrix4(tm);
+					scene.add(cube);
+				}
 			}
 		}
 
