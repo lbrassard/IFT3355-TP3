@@ -120,13 +120,10 @@ TP3.Render = {
 
 
 				// placer les pommes
-
 				if (THREE.MathUtils.randFloat(0,1) < applesProbability ){
 					let material_apple = new THREE.MeshPhongMaterial({color: 0x5F0B0B});
 					let geometry = new THREE.BoxBufferGeometry(alpha,alpha,alpha);
 					let cube = new THREE.Mesh(geometry,material_apple);
-					//placer à la fin de la branche
-					// cur étant le vecteur qui represente la branche entre rootNode.p0 et rootNode.p1
 					cube.applyMatrix4(tm);
 					scene.add(cube);
 				}
