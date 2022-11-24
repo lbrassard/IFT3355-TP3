@@ -2,7 +2,7 @@ TP3.Render = {
 	drawTreeRough: function (rootNode, scene, alpha, radialDivisions = 8, leavesCutoff = 0.1, leavesDensity = 10, applesProbability = 0.05, matrix = new THREE.Matrix4()) {
 		//TODO
 
-		let branch = new THREE.Vector3().subVectors(rootNode.p1,rootNode.p0)
+		let branch = new THREE.Vector3().subVectors(rootNode.p1,rootNode.p0);
 		var transformationMatrix = new THREE.Matrix4();
 
 		// branche non-terminale de l'arbre
