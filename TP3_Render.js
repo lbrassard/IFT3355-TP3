@@ -139,6 +139,55 @@ TP3.Render = {
 
 	drawTreeHermite: function (rootNode, scene, alpha, leavesCutoff = 0.1, leavesDensity = 10, applesProbability = 0.05, matrix = new THREE.Matrix4()) {
 		//TODO
+		for (let i = 0; i < rootNode.sections.length-1; i++){
+			let currentSections = rootNode.sections[i];
+			let nextSections = rootNode.sections[i+1];
+
+			for ( let j = 0; j < currentSections.length; j++){
+
+				//relier le dernier point du segment au premier (faire le tour)
+				let k=0;
+				if (j+1<currentSections.length ){
+					k=j+1;
+
+				} else {k=0}
+
+				//forme premier triangle wide base down
+				let vertices = [];
+				const material = new THREE.MeshLambertMaterial({color: 0x8B5A2B});
+				let facesIdx = [];
+
+				vertices.push(currentSections[j].x,currentSections[j].y,currentSections[j].z);
+				vertices.push(currentSections[k].x,currentSections[k].y,currentSections[k].z);
+				vertices.push(nextSections[j].x,nextSections[j].y,nextSections[j].z);
+				let f32vertices = new Float32Array(vertices);
+				const geometry = new THREE.BufferGeometry();
+				geometry.setAttribute("position", new THREE.BufferAttribute(f32vertices,3))
+				facesIdx.push(0,1,2);
+				geometry.setIndex(facesIdx);
+				geometry.computeVertexNormals();
+				const triangle = new THREE.Mesh(geometry,material);
+				scene.add(triangle);
+
+				//forme deuxieme triangle wide face up
+
+				vertices=[];
+				facesIdx=[];
+				vertices.push(currentSections[k].x,currentSections[k].y,currentSections[k].z);
+				vertices.push(nextSections[k].x,nextSections[k].y,nextSections[k].z);
+				vertices.push(nextSections[j].x,nextSections[j].y,nextSections[j].z);
+				f32vertices = new Float32Array(vertices);
+				const geometry2 = new THREE.BufferGeometry();
+				geometry2.setAttribute("position", new THREE.BufferAttribute(f32vertices,3))
+				facesIdx.push(0,1,2);
+				geometry2.setIndex(facesIdx);
+				geometry2.computeVertexNormals();
+				const triangle2 = new THREE.Mesh(geometry2,material);
+				scene.add(triangle2);
+			}
+
+		}
+
 	},
 
 	updateTreeHermite: function (trunkGeometryBuffer, leavesGeometryBuffer, rootNode) {
