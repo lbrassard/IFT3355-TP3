@@ -92,7 +92,12 @@ TP3.Geometry = {
 			//On cherche autant de segments que de length divisions
 			for (let i = 0; i <= lengthDivisions; i++) {
 				let t = i / (lengthDivisions);
-				let [p, vt] = this.hermite(h0, h1, v0, v1, t); // on obtient notre point interpolé de notre segment et sa tangente.
+				var [p, vt] = this.hermite(h0, h1, v0, v1, t); // on obtient notre point interpolé de notre segment et sa tangente.
+				if(t != 1){var [p2, vt2] = this.hermite(h0, h1, v0, v1, t + 1 / (lengthDivisions));}
+				else{
+					[p2, vt2] = [p, vt]};
+
+
 				let circlePtArray = [];
 				// À t = 0  les points de notre section proviennent de son parent à t = 1.
 				if(t == 0 && currentNode.parentNode != null ) {
@@ -105,33 +110,36 @@ TP3.Geometry = {
 				// Un cercle a une circonférence de 2pi, donc chaque point sera séparé par un angle de theta = 2pi / radialDivisions.
 				let theta = 2 * Math.PI / radialDivisions;
 
-				let point = new THREE.Vector3(rInter, 0, 0);
-				if(vt.y != 0) {
-					// y |\         On cherche l'angle formé par le y de notre tangente et l'hypoténuse qu'elle forme
-					//   | \ h = 1  pour savoir de combien rotationner notre point par rapport à l'axe des x.
-					//   | a\
-					let angle = Math.PI / 2 - Math.asin(vt.y/1);
-					if(vt.z < 0){
-						angle = angle - 2 * Math.PI;
-					}
-					point = new THREE.Vector3(Math.abs(rInter * Math.cos(angle)), rInter * Math.sin(angle), 0);
-					let zRotate = new THREE.Matrix4().makeRotationX(angle);
-					point.applyMatrix4(zRotate);
-
+				// Trouver v pour notre frame, vt est notre axe u
+				let v = new THREE.Vector3(0, 0, 0);
+				if (vt.x != 0 || vt.y != 0) {
+					v = new THREE.Vector3(0, 0, 1);
+				} else if (vt.x != 0 || vt.z != 0) {
+					v = new THREE.Vector3(0, 1, 0);
+				} else if (vt.y != 0 || vt.z != 0) {
+					v = new THREE.Vector3(1, 0, 0);
 				}
-					// Nous avons besoin d'autant de points que de radial divisions.
-					for (let j = 0; j < radialDivisions; j++) {
-						let circleP = new THREE.Vector3(point.x, point.y, point.z);
-						// On effectue une translation pour positionner le point à proximité du point interpolé de la courbe.
-						let translationMat = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z);
-						circleP.applyMatrix4(translationMat);
-						circlePtArray.push(circleP);
+				// Reste à trouver notre axe w
+				let w = new THREE.Vector3().crossVectors(vt, v);
+				let r1 = v.multiplyScalar(rInter * Math.cos(theta));
+				let r2 = w.multiplyScalar(rInter * Math.sin(theta));
+				let point = new THREE.Vector3(r1.x + r2.x,
+					r1.y + r2.y,
+					r1.z + r2.z);
 
-						// Ces points sont tous positionnés autour du même axe et donc pour obtenir la position des autres points,
-						// on fait tourner le point initial comme une toupie pour une rotation complète.
-						point.applyAxisAngle(vt,theta);
-					}
-					currentNode.sections.push(circlePtArray);
+				// Nous avons besoin d'autant de points que de radial divisions.
+				for (let j = 0; j < radialDivisions; j++) {
+					let circleP = new THREE.Vector3(point.x, point.y, point.z);
+					// On effectue une translation pour positionner le point à proximité du point interpolé de la courbe.
+					let translationMat = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z);
+					circleP.applyMatrix4(translationMat);
+					circlePtArray.push(circleP);
+
+					// Ces points sont tous positionnés autour du même axe et donc pour obtenir la position des autres points,
+					// on fait tourner le point initial comme une toupie pour une rotation complète.
+					point.applyAxisAngle(vt,theta);
+				}
+				currentNode.sections.push(circlePtArray);
 			}
 		}
 		return rootNode;
