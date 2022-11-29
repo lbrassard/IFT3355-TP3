@@ -92,7 +92,70 @@ TP3.Geometry = {
 			//On cherche autant de segments que de length divisions
 			for (let i = 0; i <= lengthDivisions; i++) {
 				let t = i / (lengthDivisions);
-				let [p, vt] = this.hermite(h0, h1, v0, v1, t); // on obtient notre point interpolé de notre segment et sa tangente.
+				var [p, vt] = this.hermite(h0, h1, v0, v1, t); // on obtient notre point interpolé de notre segment et sa tangente.
+				if(t != 1){var [p2, vt2] = this.hermite(h0, h1, v0, v1, t + 1 / (lengthDivisions));}
+				else{
+					[p2, vt2] = [p, vt]};
+				// if( t != 1) {
+				// 	var [p, vt] = this.hermite(h0, h1, v0, v1, t); // on obtient notre point interpolé de notre segment et sa tangente.
+				// 	var [p2, vt2] = this.hermite(h0, h1, v0, v1, t + 1 / (lengthDivisions));
+				// }
+				// else{
+				// 	[p, vt] = this.hermite(h0, h1, v0, v1, t - 1 / (lengthDivisions)); // on obtient notre point interpolé de notre segment et sa tangente.
+				// 	[p2, vt2] = this.hermite(h0, h1, v0, v1, t);
+				// }
+
+				// let dx = p2.x - p.x;
+				// let dy = p2.y - p.y;
+				// let dz = p2.z - p.z;
+				// let v3 = new THREE.Vector3(dx, dy, dz).normalize();
+				// let v3Arr = [v3.x, v3.y, v3.z];
+				// dx = Math.abs(dx);
+				// dy = Math.abs(dy);
+				// dz = Math.abs(dz);
+				// let v3Abs = [dx, dy, dz];
+				//
+				// let max = Math.max(v3Abs[0], v3Abs[1], v3Abs[2]);
+				// let min = Math.min(v3Abs[0], v3Abs[1], v3Abs[2]);
+				//
+				// let maxIndex = 0;
+				// let medIndex = 0;
+				// let minIndex = 0;
+				//
+				// //Loop through p_abs array to find which magnitudes are equal to maxval & minval. Store their indexes for use later.
+				// for(let l = 0; l < 3; l++) {
+				// 	if (v3Abs[l] == max) maxIndex = l;
+				// 	else if (v3Abs[l] == min) minIndex = l;
+				// }
+				//
+				// //Find the remaining index which has the medium magnitude
+				// for(let k = 0; i < 3; k++) {
+				// 	if (k!=maxIndex && k!=minIndex) {
+				// 		medIndex = k;
+				// 		break;
+				// 	}
+				// }
+				//
+				// //Store the maximum magnitude for now.
+				// let storeMax = (v3Arr[maxIndex]);
+				//
+				// //Swap the 2 indexes that contain the maximum & medium magnitudes, negating maximum. Set minimum magnitude to zero.
+				// v3Arr[maxIndex] = (p[medIndex]);
+				// v3Arr[medIndex] = -storeMax;
+				// v3Arr[minIndex] = 0;
+				//
+				// //Calculate v1. Perpendicular to v3.
+				// let s = Math.sqrt(v3.x*v3.x + v3.z*v3.z + v3.y*v3.y);
+				// let v1x = s * v3Arr[0];
+				// let v1y = s * v3Arr[1];
+				// let v1z = s * v3Arr[2];
+				//
+				// //Calculate v2 as cross product of v3 and v1.
+				// let v2x = v3.y*v1.z - v3.z*v1.y;
+				// let v2y = v3.z*v1.x - v3.x*v1.z;
+				// let v2z = v3.x*v1.y - v3.y*v1.x;
+
+
 				let circlePtArray = [];
 				// À t = 0  les points de notre section proviennent de son parent à t = 1.
 				if(t == 0 && currentNode.parentNode != null ) {
@@ -105,7 +168,7 @@ TP3.Geometry = {
 				// Un cercle a une circonférence de 2pi, donc chaque point sera séparé par un angle de theta = 2pi / radialDivisions.
 				let theta = 2 * Math.PI / radialDivisions;
 
-				let point = new THREE.Vector3(rInter, 0, 0);
+				let point = new THREE.Vector3(0, 0, 0);
 				if(vt.y != 0) {
 					// y |\         On cherche l'angle formé par le y de notre tangente et l'hypoténuse qu'elle forme
 					//   | \ h = 1  pour savoir de combien rotationner notre point par rapport à l'axe des x.
@@ -115,10 +178,14 @@ TP3.Geometry = {
 						angle = angle - 2 * Math.PI;
 					}
 					point = new THREE.Vector3(Math.abs(rInter * Math.cos(angle)), rInter * Math.sin(angle), 0);
-					let zRotate = new THREE.Matrix4().makeRotationX(angle);
-					point.applyMatrix4(zRotate);
-
+					let axis = new THREE.Vector3().cross( vt, vt2 );
+					let xRotate = new THREE.Matrix4().makeRotationAxis(axis, angle);
+					point.applyMatrix4(xRotate);
 				}
+				// let circlePointx = p2.x + rInter * (v1.x * Math.cos(theta) + v2x * Math.sin(theta));
+				// let circlePointy = p2.y + rInter * (v1.y * Math.cos(theta) + v2y * Math.sin(theta));
+				// let circlePointz = p2.z + rInter * (v1.z * Math.cos(theta) + v2z * Math.sin(theta));
+				// point.set(circlePointx, circlePointy, circlePointz);
 					// Nous avons besoin d'autant de points que de radial divisions.
 					for (let j = 0; j < radialDivisions; j++) {
 						let circleP = new THREE.Vector3(point.x, point.y, point.z);
@@ -184,7 +251,7 @@ TP3.Geometry = {
 				pArray[k].y = (1 - t) * pArray[k].y + t * pArray[k+1].y;
 				pArray[k].z = (1 - t) * pArray[k].z + t * pArray[k+1].z;
 				// Les deux derniers points peuvent être utilisés pour trouver la tangente du point interpolé final.
-				// Cette tangente est tout simplement le vecteur entre ces deux points.
+				// Cette tangente est tout simplement le vecteur obtenu à partir de ces deux points.
 				if(j === (n - 1)  && k === (n - j - 1) ){
 					let p0 = pArray[k];
 					let p1 = pArray[k + 1]
