@@ -139,6 +139,8 @@ TP3.Render = {
 
 	drawTreeHermite: function (rootNode, scene, alpha, leavesCutoff = 0.1, leavesDensity = 10, applesProbability = 0.05, matrix = new THREE.Matrix4()) {
 
+		// stack method with mergeBufferGeometry
+
 		const stack = [];
 		stack.push(rootNode);
 
