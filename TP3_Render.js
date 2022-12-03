@@ -138,9 +138,9 @@ TP3.Render = {
 	},
 
 	drawTreeHermite: function (rootNode, scene, alpha, leavesCutoff = 0.1, leavesDensity = 10, applesProbability = 0.05, matrix = new THREE.Matrix4()) {
-		//TODO
 
 		// stack method with mergeBufferGeometry
+
 		const stack = [];
 		stack.push(rootNode);
 
@@ -152,6 +152,7 @@ TP3.Render = {
 		// itères dans notre stack pour construire toutes les branches
 		while(stack.length > 0){
 			let currentNode = stack.pop();
+			//ajoute les enfants de la branche qu'on vient de prendre du stack
 			for (let i = 0; i < currentNode.childNode.length; i++){
 				stack.push(currentNode.childNode[i]);
 			}
@@ -218,19 +219,23 @@ TP3.Render = {
 
 
 
-			// branche non-terminale de rayon plus petite que paramètre
+			// branche non-terminale de rayon plus petite que paramètre alpha*leaveCutoff
 			if (currentNode.a0 < alpha*leavesCutoff && currentNode.childNode.length != 0){
 
-				// ajouter pommes à des nœuds non terminaux
+				// ajouter pomme à un nœud non terminal
 				if (THREE.MathUtils.randFloat(0,1) < applesProbability ) {
 					this.createRoundApple(scene,currentNode,alpha);
 				}
-				//ajouter feuilles
+				//ajouter des feuilles
 				let midPoint = new THREE.Vector3().lerpVectors(currentNode.p0,currentNode.p1,0.5);
 				let tm = new THREE.Matrix4().makeTranslation(midPoint.x,midPoint.y,midPoint.z);
 				for ( let i = 0; i < leavesDensity; i++){
 					let readyGeo = this.createRandomLeaf(leafModel.clone(),currentNode,alpha);
 					readyGeo.applyMatrix4(tm);
+					let faceId = [];
+					faceId.push(0,1,2);
+					readyGeo.setIndex(faceId);
+					readyGeo.computeVertexNormals();
 					leaves.push(readyGeo);
 				}
 			}
@@ -249,14 +254,20 @@ TP3.Render = {
 				for ( let i = 0; i < leavesDensity; i++){
 					let readyGeo = this.createRandomLeaf(leafModel.clone(),currentNode,alpha);
 					readyGeo.applyMatrix4(tm);
+					let faceId = [];
+					faceId.push(0,1,2);
+					readyGeo.setIndex(faceId);
+					readyGeo.computeVertexNormals();
 					leaves.push(readyGeo);
+
 					let feuilleDepasse = readyGeo.clone();
 					feuilleDepasse.applyMatrix4(new THREE.Matrix4().makeTranslation(increase.x,increase.y,increase.z))
 					leaves.push(feuilleDepasse);
 
 				}
 
-				//ajouter un cap à la branche
+				// ajouter un cap à la branche composé de radialDivision triangles
+				// partant d'une section jusqu'à p1
 				let capPoints = currentNode.sections[currentNode.sections.length - 1];
 				for (let i = 0; i < capPoints.length; i++) {
 					let k = 0;
@@ -285,8 +296,7 @@ TP3.Render = {
 		scene.add(treeMesh);
 
 		var leaf = THREE.BufferGeometryUtils.mergeBufferGeometries(leaves);
-		let leafMaterial = new THREE.MeshPhongMaterial({color: 0x3A5F0B});
-		var leavesMesh = new THREE.Mesh(leaf, leafMaterial);
+		var leavesMesh = new THREE.Mesh(leaf, new THREE.MeshPhongMaterial({color : 0x3A5F0B, side: THREE.DoubleSide}));
 		scene.add(leavesMesh);
 
 
@@ -439,7 +449,7 @@ TP3.Render = {
 	},
 	createRoundApple : function (scene,currentNode,alpha){
 		let material_apple = new THREE.MeshPhongMaterial({color: 0x5F0B0B});
-		let geometry = new THREE.SphereBufferGeometry(alpha/4);
+		let geometry = new THREE.SphereBufferGeometry(alpha/2);
 		let sphere = new THREE.Mesh(geometry, material_apple);
 		let tm = new THREE.Matrix4().makeTranslation(currentNode.p1.x, currentNode.p1.y -0.1, currentNode.p1.z);
 		sphere.applyMatrix4(tm)
