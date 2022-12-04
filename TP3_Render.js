@@ -84,7 +84,7 @@ TP3.Render = {
 
 
 			// passer la matrice de position de la branche pour positioner les feuilles
-			// placer les feuilles sur les noeuds terminaux
+			// placer les feuilles sur les nœuds terminaux
 			if (rootNode.a0 < alpha*leavesCutoff) {
 				let tm = new THREE.Matrix4().copy(translationMatrix);
 				for (var i = 0; i<leavesDensity; i++){
@@ -138,7 +138,171 @@ TP3.Render = {
 	},
 
 	drawTreeHermite: function (rootNode, scene, alpha, leavesCutoff = 0.1, leavesDensity = 10, applesProbability = 0.05, matrix = new THREE.Matrix4()) {
-		//TODO
+
+		// stack method with mergeBufferGeometry
+
+		const stack = [];
+		stack.push(rootNode);
+
+		//Buffer geometries qui vont créer un gros mesh
+		const branches = [];
+		const leaves = [];
+
+
+		// itères dans notre stack pour construire toutes les branches
+		while(stack.length > 0){
+			let currentNode = stack.pop();
+			//ajoute les enfants de la branche qu'on vient de prendre du stack
+			for (let i = 0; i < currentNode.childNode.length; i++){
+				stack.push(currentNode.childNode[i]);
+			}
+
+			const branchModel = new THREE.BufferGeometry();
+
+			// Créer une branche à partir de toutes les sections
+			for (let i = 0; i < currentNode.sections.length - 1; i++) {
+				let currentSections = currentNode.sections[i];
+				let nextSections = currentNode.sections[i + 1];
+
+				for (let j = 0; j < currentSections.length; j++) {
+
+					//relier le dernier point du segment au premier (faire le tour)
+					let k = 0;
+					if (j + 1 < currentSections.length) {
+						k = j + 1;
+
+					} else {
+						k = 0
+					}
+
+					//forme premier triangle wide base down
+					let vertices = [];
+					let facesIdx = [];
+
+					vertices.push(currentSections[j].x, currentSections[j].y, currentSections[j].z);
+					vertices.push(currentSections[k].x, currentSections[k].y, currentSections[k].z);
+					vertices.push(nextSections[j].x, nextSections[j].y, nextSections[j].z);
+					let f32vertices = new Float32Array(vertices);
+					let geometry = branchModel.clone();
+					geometry.setAttribute("position", new THREE.BufferAttribute(f32vertices, 3))
+					facesIdx.push(0, 1, 2);
+					geometry.setIndex(facesIdx);
+					geometry.computeVertexNormals();
+					branches.push(geometry);
+
+					//forme deuxième triangle wide face up
+					vertices = [];
+					facesIdx = [];
+					vertices.push(currentSections[k].x, currentSections[k].y, currentSections[k].z);
+					vertices.push(nextSections[k].x, nextSections[k].y, nextSections[k].z);
+					vertices.push(nextSections[j].x, nextSections[j].y, nextSections[j].z);
+					f32vertices = new Float32Array(vertices);
+					let geometry2 = branchModel.clone();
+					geometry2.setAttribute("position", new THREE.BufferAttribute(f32vertices, 3))
+					facesIdx.push(0, 1, 2);
+					geometry2.setIndex(facesIdx);
+					geometry2.computeVertexNormals();
+					branches.push(geometry2)
+				}
+
+			}
+
+			// créer un triangle équilatéral centré en (0,0,0) pour notre model de feuille
+			const points = []
+			let R = alpha/Math.sqrt(3);
+			points.push(R*Math.cos(0),0.0,R*Math.sin(0));
+			points.push(R*Math.cos(0+2*Math.PI/3),0.0,R*Math.sin(0+2*Math.PI/3));
+			points.push(R*Math.cos(0+4*Math.PI/3),0.0,R*Math.sin(0+4*Math.PI/3));
+			let f32vertices = new Float32Array(points);
+			const leafModel = new THREE.BufferGeometry();
+			leafModel.setAttribute("position", new THREE.BufferAttribute(f32vertices,3));
+
+
+
+			// branche non-terminale de rayon plus petite que paramètre alpha*leaveCutoff
+			if (currentNode.a0 < alpha*leavesCutoff && currentNode.childNode.length != 0){
+
+				// ajouter pomme à un nœud non terminal
+				if (THREE.MathUtils.randFloat(0,1) < applesProbability ) {
+					this.createRoundApple(scene,currentNode,alpha);
+				}
+				//ajouter des feuilles
+				let midPoint = new THREE.Vector3().lerpVectors(currentNode.p0,currentNode.p1,0.5);
+				let tm = new THREE.Matrix4().makeTranslation(midPoint.x,midPoint.y,midPoint.z);
+				for ( let i = 0; i < leavesDensity; i++){
+					let readyGeo = this.createRandomLeaf(leafModel.clone(),currentNode,alpha);
+					readyGeo.applyMatrix4(tm);
+					let faceId = [];
+					faceId.push(0,1,2);
+					readyGeo.setIndex(faceId);
+					readyGeo.computeVertexNormals();
+					leaves.push(readyGeo);
+				}
+			}
+
+			// branche terminale
+			if (currentNode.childNode.length == 0) {
+
+				//ajouter pommes
+				if (THREE.MathUtils.randFloat(0, 1) < applesProbability) {
+					this.createRoundApple(scene, currentNode, alpha);
+				}
+				//ajouter feuilles
+				let midPoint = new THREE.Vector3().lerpVectors(currentNode.p0,currentNode.p1,0.5);
+				let increase = new THREE.Vector3().sub(currentNode.p1,currentNode.p0);
+				let tm = new THREE.Matrix4().makeTranslation(midPoint.x,midPoint.y,midPoint.z);
+				for ( let i = 0; i < leavesDensity; i++){
+					let readyGeo = this.createRandomLeaf(leafModel.clone(),currentNode,alpha);
+					readyGeo.applyMatrix4(tm);
+					let faceId = [];
+					faceId.push(0,1,2);
+					readyGeo.setIndex(faceId);
+					readyGeo.computeVertexNormals();
+					leaves.push(readyGeo);
+
+					let feuilleDepasse = readyGeo.clone();
+					feuilleDepasse.applyMatrix4(new THREE.Matrix4().makeTranslation(increase.x,increase.y,increase.z))
+					leaves.push(feuilleDepasse);
+
+				}
+
+				// ajouter un cap à la branche composé de radialDivision triangles
+				// partant d'une section jusqu'à p1
+				let capPoints = currentNode.sections[currentNode.sections.length - 1];
+				for (let i = 0; i < capPoints.length; i++) {
+					let k = 0;
+					if (i + 1 < capPoints.length) {k = i + 1} else {k = 0};
+					let vs = [];
+					let fIdx = [];
+					vs.push(currentNode.p1.x,currentNode.p1.y,currentNode.p1.z);
+					vs.push(capPoints[i].x,capPoints[i].y,capPoints[i].z);
+					vs.push(capPoints[k].x,capPoints[k].y,capPoints[k].z);
+					let f32vertices = new Float32Array(vs);
+					let geometry = branchModel.clone();
+					geometry.setAttribute("position", new THREE.BufferAttribute(f32vertices,3));
+					fIdx.push(0,1,2);
+					geometry.setIndex(fIdx);
+					geometry.computeVertexNormals();
+					branches.push(geometry);
+				}
+			}
+		}
+
+
+
+		//créer un mesh pour nos structures de feuilles et de branches
+		var tree = THREE.BufferGeometryUtils.mergeBufferGeometries(branches);
+		var treeMesh = new THREE.Mesh(tree,new THREE.MeshLambertMaterial({color: 0x8B5A2B}));
+		scene.add(treeMesh);
+
+		var leaf = THREE.BufferGeometryUtils.mergeBufferGeometries(leaves);
+		var leavesMesh = new THREE.Mesh(leaf, new THREE.MeshPhongMaterial({color : 0x3A5F0B, side: THREE.DoubleSide}));
+		scene.add(leavesMesh);
+
+
+
+
+		return rootNode;
 	},
 
 	updateTreeHermite: function (trunkGeometryBuffer, leavesGeometryBuffer, rootNode) {
@@ -283,5 +447,29 @@ TP3.Render = {
 		scene.add(lineT);
 
 	},
+	createRoundApple : function (scene,currentNode,alpha){
+		let material_apple = new THREE.MeshPhongMaterial({color: 0x5F0B0B});
+		let geometry = new THREE.SphereBufferGeometry(alpha/2);
+		let sphere = new THREE.Mesh(geometry, material_apple);
+		let tm = new THREE.Matrix4().makeTranslation(currentNode.p1.x, currentNode.p1.y -0.1, currentNode.p1.z);
+		sphere.applyMatrix4(tm)
+		scene.add(sphere);
+	},
 
+	createRandomLeaf :function(geo,currentNode,alpha) {
+
+		geo.rotateX(THREE.MathUtils.randFloat(0, 2 * Math.PI));
+		geo.rotateY(THREE.MathUtils.randFloat(0, 2 * Math.PI));
+		geo.rotateZ(THREE.MathUtils.randFloat(0, 2 * Math.PI));
+
+
+		let x_rand = THREE.MathUtils.randFloat(-alpha / 2, alpha / 2);
+		let y_rand = THREE.MathUtils.randFloat(-alpha / 2, alpha / 2);
+		let z_rand = THREE.MathUtils.randFloat(-alpha / 2, alpha / 2);
+		let translation = new THREE.Matrix4().makeTranslation(x_rand, y_rand, z_rand);
+
+		geo.applyMatrix4(translation);
+
+		return geo;
+	},
 }
