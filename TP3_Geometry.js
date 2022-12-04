@@ -11,7 +11,7 @@ class Node {
 		this.a1 = null; //Rayon de la branche a p1
 
 		this.sections = null; //Liste contenant une liste de points représentant les segments circulaires du cylindre généralisé
-		this.matRot = new THREE.Matrix4(); //Matrice de rotation pour l'animation
+		this.matNode = new THREE.Matrix4(); //Matrice de rotation pour l'animation
 	}
 }
 
