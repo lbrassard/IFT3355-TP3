@@ -147,6 +147,7 @@ TP3.Render = {
 		//Buffer geometries qui vont créer un gros mesh
 		const branches = [];
 		const leaves = [];
+		const apples =[];
 
 
 		// itères dans notre stack pour construire toutes les branches
@@ -224,7 +225,8 @@ TP3.Render = {
 
 				// ajouter pomme à un nœud non terminal
 				if (THREE.MathUtils.randFloat(0,1) < applesProbability ) {
-					this.createRoundApple(scene,currentNode,alpha);
+					let apple = this.createRoundApple(scene,currentNode,alpha);
+					apples.push(apple)
 				}
 				//ajouter des feuilles
 				let midPoint = new THREE.Vector3().lerpVectors(currentNode.p0,currentNode.p1,0.5);
@@ -245,11 +247,13 @@ TP3.Render = {
 
 				//ajouter pommes
 				if (THREE.MathUtils.randFloat(0, 1) < applesProbability) {
-					this.createRoundApple(scene, currentNode, alpha);
+					let apple = this.createRoundApple(scene, currentNode, alpha);
+					apples.push(apple);
+
 				}
 				//ajouter feuilles
 				let midPoint = new THREE.Vector3().lerpVectors(currentNode.p0,currentNode.p1,0.5);
-				let increase = new THREE.Vector3().sub(currentNode.p1,currentNode.p0);
+				let increase = new THREE.Vector3().subVectors(currentNode.p1,currentNode.p0);
 				let tm = new THREE.Matrix4().makeTranslation(midPoint.x,midPoint.y,midPoint.z);
 				for ( let i = 0; i < leavesDensity; i++){
 					let readyGeo = this.createRandomLeaf(leafModel.clone(),currentNode,alpha);
@@ -300,9 +304,12 @@ TP3.Render = {
 		scene.add(leavesMesh);
 
 
+		var appleGeo = THREE.BufferGeometryUtils.mergeBufferGeometries(apples);
+		var applesMesh = new THREE.Mesh(appleGeo,new THREE.MeshPhongMaterial({color: 0x5F0B0B}));
+		scene.add(applesMesh);
 
+		return [treeMesh,leavesMesh,applesMesh];
 
-		return rootNode;
 	},
 
 	updateTreeHermite: function (trunkGeometryBuffer, leavesGeometryBuffer, rootNode) {
@@ -448,12 +455,10 @@ TP3.Render = {
 
 	},
 	createRoundApple : function (scene,currentNode,alpha){
-		let material_apple = new THREE.MeshPhongMaterial({color: 0x5F0B0B});
 		let geometry = new THREE.SphereBufferGeometry(alpha/2);
-		let sphere = new THREE.Mesh(geometry, material_apple);
 		let tm = new THREE.Matrix4().makeTranslation(currentNode.p1.x, currentNode.p1.y -0.1, currentNode.p1.z);
-		sphere.applyMatrix4(tm)
-		scene.add(sphere);
+		geometry.applyMatrix4(tm);
+		return geometry;
 	},
 
 	createRandomLeaf :function(geo,currentNode,alpha) {
