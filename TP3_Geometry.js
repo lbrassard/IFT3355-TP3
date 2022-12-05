@@ -93,18 +93,15 @@ TP3.Geometry = {
 			//On cherche autant de segments que de length divisions
 			for (let i = 0; i <= lengthDivisions; i++) {
 				let t = i / (lengthDivisions);
-				var [p, vt] = this.hermite(h0, h1, v0, v1, t); // on obtient notre point interpolé de notre segment et sa tangente.
-				if(t != 1){var [p2, vt2] = this.hermite(h0, h1, v0, v1, t + 1 / (lengthDivisions));}
-				else{
-					[p2, vt2] = [p, vt]};
-
-
+				let [p, vt] = this.hermite(h0, h1, v0, v1, t); // On obtient notre point interpolé de notre segment et sa tangente.
 				let circlePtArray = [];
+
 				// À t = 0  les points de notre section proviennent de son parent à t = 1.
 				if(t == 0 && currentNode.parentNode != null ) {
 					currentNode.sections = currentNode.parentNode.sections.slice(4);
 					continue;
 				}
+
 				// Notre rayon interpolé pour le segment en question.
 				let rInter = currentNode.a1 * t + currentNode.a0 * (1 - t);
 
@@ -120,25 +117,27 @@ TP3.Geometry = {
 				} else if (vt.y != 0 || vt.z != 0) {
 					v = new THREE.Vector3(1, 0, 0);
 				}
-				// Reste à trouver notre axe w
+				// Reste à trouver notre axe w grâce au produit vectoriel de u (i.e. vt) et v
 				let w = new THREE.Vector3().crossVectors(vt, v);
-				let r1 = v.multiplyScalar(rInter * Math.cos(theta));
-				let r2 = w.multiplyScalar(rInter * Math.sin(theta));
-				let point = new THREE.Vector3(r1.x + r2.x,
-					r1.y + r2.y,
-					r1.z + r2.z);
+
+				// Notre point d'origine (i.e. avant translation), se trouve dans le plan formé par v et w
+				let rV = v.multiplyScalar(rInter * Math.cos(theta));
+				let rW = w.multiplyScalar(rInter * Math.sin(theta));
+				let pointOri = new THREE.Vector3(rV.x + rW.x,
+					rV.y + rW.y,
+					rV.z + rW.z);
 
 				// Nous avons besoin d'autant de points que de radial divisions.
 				for (let j = 0; j < radialDivisions; j++) {
-					let circleP = new THREE.Vector3(point.x, point.y, point.z);
-					// On effectue une translation pour positionner le point à proximité du point interpolé de la courbe.
+					let circleP = new THREE.Vector3(pointOri.x, pointOri.y, pointOri.z);
+					// On effectue une translation pour positionner le point d'origine à proximité du point interpolé de la courbe.
 					let translationMat = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z);
 					circleP.applyMatrix4(translationMat);
 					circlePtArray.push(circleP);
 
 					// Ces points sont tous positionnés autour du même axe et donc pour obtenir la position des autres points,
 					// on fait tourner le point initial comme une toupie pour une rotation complète.
-					point.applyAxisAngle(vt,theta);
+					pointOri.applyAxisAngle(vt,theta);
 				}
 				currentNode.sections.push(circlePtArray);
 			}
@@ -200,7 +199,7 @@ TP3.Geometry = {
 					if(t > 0 && t < 1){
 						var dp= new THREE.Vector3().subVectors(p1,p0).normalize();
 					}
-					// At t=0 and t=1, the curve at the endpoints is always tangent to the straight line connecting the points and controlP[3] = p1 - p0;
+					// À t=0 et t=1, la courbe aux extrémités est toujours tangente à la droite reliant les points et contrôleP[3] = p1 - p0 ;
 					else{
 						dp = controlP[3].normalize();
 					}
