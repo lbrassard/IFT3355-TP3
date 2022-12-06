@@ -186,7 +186,7 @@ TP3.Render = {
 					let f32vertices = new Float32Array(vertices);
 					let geometry = branchModel.clone();
 					geometry.setAttribute("position", new THREE.BufferAttribute(f32vertices, 3))
-					facesIdx.push(0, 1, 2);
+					facesIdx.push(0,1,2);
 					geometry.setIndex(facesIdx);
 					geometry.computeVertexNormals();
 					branches.push(geometry);
@@ -200,7 +200,7 @@ TP3.Render = {
 					f32vertices = new Float32Array(vertices);
 					let geometry2 = branchModel.clone();
 					geometry2.setAttribute("position", new THREE.BufferAttribute(f32vertices, 3))
-					facesIdx.push(0, 1, 2);
+					facesIdx.push(0,1,2);
 					geometry2.setIndex(facesIdx);
 					geometry2.computeVertexNormals();
 					branches.push(geometry2)
@@ -308,12 +308,185 @@ TP3.Render = {
 		var applesMesh = new THREE.Mesh(appleGeo,new THREE.MeshPhongMaterial({color: 0x5F0B0B}));
 		scene.add(applesMesh);
 
-		return [treeMesh,leavesMesh,applesMesh];
+		return [tree,leaf,appleGeo];
 
 	},
 
-	updateTreeHermite: function (trunkGeometryBuffer, leavesGeometryBuffer, rootNode) {
-		//TODO
+	updateTreeHermite: function (trunkGeometryBuffer, leavesGeometryBuffer, applesGeometryBuffer, rootNode) {
+
+		// Créer un stack avec tous les points du maillage
+		var stack = [];
+		stack.push(rootNode);
+
+		var idx = 0;
+		while (stack.length > 0) {
+			var currentNode = stack.pop();
+
+			for (var i = 0; i < currentNode.childNode.length; i++) {
+				stack.push(currentNode.childNode[i]);
+			}
+
+			var matNode = currentNode.matNode;
+
+			// Pour le tronc (la première branche)
+			if (currentNode.parentNode == null){
+
+				// Pour le premier morceau du tronc, il ne faut pas changer les points qui touchent au sol
+				// On a 5 faces par morceau de branche
+				for (var f = 0; f < 5; f++){
+					// On a deux triangles par face et on a trois points par triangle
+
+					// En haut à gauche
+					var pointHG1 = new THREE.Vector3(trunkGeometryBuffer[f*18 +6], trunkGeometryBuffer[f*18 +7], trunkGeometryBuffer[f*18 +8]);
+					pointHG1.applyMatrix4(matNode);
+
+					trunkGeometryBuffer[f*18 +6] = pointHG1.x;
+					trunkGeometryBuffer[f*18 +7] = pointHG1.y;
+					trunkGeometryBuffer[f*18 +8] = pointHG1.z;
+
+					// En haut à droite
+					var pointHD = new THREE.Vector3(trunkGeometryBuffer[f*18 +12], trunkGeometryBuffer[f*18 +13], trunkGeometryBuffer[f*18 +14]);
+					pointHD.applyMatrix4(matNode);
+
+					trunkGeometryBuffer[f*18 +12] = pointHD.x;
+					trunkGeometryBuffer[f*18 +13] = pointHD.y;
+					trunkGeometryBuffer[f*18 +14] = pointHD.z;
+
+					// En haut à gauche
+					var pointHG2 = new THREE.Vector3(trunkGeometryBuffer[f*18 +15], trunkGeometryBuffer[f*18 +16], trunkGeometryBuffer[f*18 +17]);
+					pointHG2.applyMatrix4(matNode);
+
+					trunkGeometryBuffer[f*18 +15] = pointHG2.x;
+					trunkGeometryBuffer[f*18 +16] = pointHG2.y;
+					trunkGeometryBuffer[f*18 +17] = pointHG2.z;
+				}
+
+				// Pour les 3 autres morceaux du tronc, il faut appliquer la matrice de tranformation
+				for (var m = 1; m < 4; m++) {
+
+					// On a 5 faces par morceau
+					for (var f = 0; f < 5; f++){
+						// On a deux triangles par face et on a trois points par triangle
+
+						// En bas à gauche
+						var pointBG = new THREE.Vector3(trunkGeometryBuffer[m*5*18 + f*18 + 0], trunkGeometryBuffer[m*5*18 + f*18 + 1], trunkGeometryBuffer[m*5*18 + f*18 + 2]);
+						pointBG.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[m*5*18 + f*18 + 0] = pointBG.x;
+						trunkGeometryBuffer[m*5*18 + f*18 + 1] = pointBG.y;
+						trunkGeometryBuffer[m*5*18 + f*18 + 2] = pointBG.z;
+
+						// En bas à droite
+						var pointBD1 = new THREE.Vector3(trunkGeometryBuffer[m*5*18 + f*18 + 3], trunkGeometryBuffer[m*5*18 + f*18 + 4], trunkGeometryBuffer[m*5*18 + f*18 + 5]);
+						pointBD1.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[m*5*18 + f*18 + 3] = pointBD1.x;
+						trunkGeometryBuffer[m*5*18 + f*18 + 4] = pointBD1.y;
+						trunkGeometryBuffer[m*5*18 + f*18 + 5] = pointBD1.z;
+
+						// En haut à gauche
+						var pointHG1 = new THREE.Vector3(trunkGeometryBuffer[m*5*18 + f*18 + 6], trunkGeometryBuffer[m*5*18 + f*18 + 7], trunkGeometryBuffer[m*5*18 + f*18 + 8]);
+						pointHG1.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[m*5*18 + f*18 + 6] = pointHG1.x;
+						trunkGeometryBuffer[m*5*18 + f*18 + 7] = pointHG1.y;
+						trunkGeometryBuffer[m*5*18 + f*18 + 8] = pointHG1.z;
+
+						// En bas à droite
+						var pointBD2 = new THREE.Vector3(trunkGeometryBuffer[m*5*18 + f*18 + 9], trunkGeometryBuffer[m*5*18 + f*18 + 10], trunkGeometryBuffer[m*5*18 + f*18 + 11]);
+						pointBD2.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[m*5*18 + f*18 + 9] = pointBD2.x;
+						trunkGeometryBuffer[m*5*18 + f*18 + 10] = pointBD2.y;
+						trunkGeometryBuffer[m*5*18 + f*18 + 11] = pointBD2.z;
+
+						// En haut à droite
+						var pointHD = new THREE.Vector3(trunkGeometryBuffer[m*5*18 + f*18 + 12], trunkGeometryBuffer[m*5*18 + f*18 + 13], trunkGeometryBuffer[m*5*18 + f*18 + 14]);
+						pointHD.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[m*5*18 + f*18 + 12] = pointHD.x;
+						trunkGeometryBuffer[m*5*18 + f*18 + 13] = pointHD.y;
+						trunkGeometryBuffer[m*5*18 + f*18 + 14] = pointHD.z;
+
+						// En haut à gauche
+						var pointHG2 = new THREE.Vector3(trunkGeometryBuffer[m*5*18 + f*18 + 15], trunkGeometryBuffer[m*5*18 + f*18 + 16], trunkGeometryBuffer[m*5*18 + f*18 + 17]);
+						pointHG2.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[m*5*18 + f*18 + 15] = pointHG2.x;
+						trunkGeometryBuffer[m*5*18 + f*18 + 16] = pointHG2.y;
+						trunkGeometryBuffer[m*5*18 + f*18 + 17] = pointHG2.z;
+
+					}
+				}
+				idx++;
+			}
+
+			// Pour toutes les autres branches, il faut appliquer les matrices de transformation de la branche en question
+			else{
+
+				// Il y a un bug dans cette partie (les indexs du buffer sont compliqués à comprendre)
+
+				// Pour les 4 morceaux d'une branche
+				for (var m = 0; m < 4; m++) {
+
+					// On a 5 faces par morceau
+					for (var f = 0; f < 5; f++){
+						// On a deux triangles par face et on a trois points par triangle
+
+						// En bas à gauche
+						var pointBG = new THREE.Vector3(trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 0], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 1], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 2]);
+						pointBG.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 0] = pointBG.x;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 1] = pointBG.y;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 2] = pointBG.z;
+
+						// En bas à droite
+						var pointBD1 = new THREE.Vector3(trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 3], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 4], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 5]);
+						pointBD1.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 3] = pointBD1.x;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 4] = pointBD1.y;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 5] = pointBD1.z;
+
+						// En haut à gauche
+						var pointHG1 = new THREE.Vector3(trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 6], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 7], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 8]);
+						pointHG1.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 6] = pointHG1.x;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 7] = pointHG1.y;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 8] = pointHG1.z;
+
+						// En bas à droite
+						var pointBD2 = new THREE.Vector3(trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 9], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 10], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 11]);
+						pointBD2.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 9] = pointBD2.x;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 10] = pointBD2.y;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 11] = pointBD2.z;
+
+						// En haut à droite
+						var pointHD = new THREE.Vector3(trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 12], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 13], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 14]);
+						pointHD.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 12] = pointHD.x;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 13] = pointHD.y;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 14] = pointHD.z;
+
+						// En haut à gauche
+						var pointHG2 = new THREE.Vector3(trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 15], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 16], trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 17]);
+						pointHG2.applyMatrix4(matNode);
+
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 15] = pointHG2.x;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 16] = pointHG2.y;
+						trunkGeometryBuffer[idx*4*5*18 + m*5*18 + f*18 + 17] = pointHG2.z;
+
+					}
+				}
+
+				idx++;
+			}
+		}
 	},
 
 	drawTreeSkeleton: function (rootNode, scene, color = 0xffffff, matrix = new THREE.Matrix4()) {

@@ -38,7 +38,7 @@ TP3.Physics = {
 		return mass;
 	},
 
-	
+
 	test: function(){
 		// Tests commencent ici
 
@@ -65,7 +65,7 @@ TP3.Physics = {
 		var mat00P1 = new THREE.Matrix4().makeTranslation(-n1p0.x,-n1p0.y,-n1p0.z);
 		matTransP1 = new THREE.Matrix4().multiplyMatrices(mat00P1, matTransP1);
 		n1p1C.applyMatrix4(mat00P1);
-		
+
 		// Faire rotation
 		var velo = new THREE.Vector3(2,0,0);
 		var nouvPos1 = new THREE.Vector3().addVectors(n1p1C, velo);
@@ -187,18 +187,18 @@ TP3.Physics = {
 		// Ajouter le vent
 		node.vel.add(new THREE.Vector3(u / Math.sqrt(node.mass), 0, v / Math.sqrt(node.mass)).multiplyScalar(dt));
 		// Ajouter la gravite
-		node.vel.add(new THREE.Vector3(0, -node.mass, 0).multiplyScalar(dt));
+		//node.vel.add(new THREE.Vector3(0, -node.mass, 0).multiplyScalar(dt));
 
 		// TODO: Projection du mouvement, force de restitution et amortissement de la velocite
 
 		// Appliquer aux branches la matrice parent
 		if (node.parentNode != null){
 			node.p0 = node.parentNode.p1;
-			node.p1.applyMatrix4(node.parentNode.matNode);
 			node.matNode = node.parentNode.matNode;
+			node.p1.applyMatrix4(node.matNode);
 		}
 
-		// Si nous sommes au noeud parent, c'est le temps de commencer 
+			// Si nous sommes au noeud parent, c'est le temps de commencer
 		// une nouvelle matrice de transformation
 		else{
 			node.matNode = new THREE.Matrix4();
@@ -206,7 +206,6 @@ TP3.Physics = {
 
 		// La tranformation qu'on va appliquer à p1
 		var matTransP1 = new THREE.Matrix4();
-
 
 		var np0C = node.p0.clone();
 		var np1C = node.p1.clone();
@@ -244,22 +243,26 @@ TP3.Physics = {
 
 		// Appliquer toutes les transformations
 		node.p1.applyMatrix4(matTransP1);
-
 		node.matNode = new THREE.Matrix4().multiplyMatrices(matTransP1, matNode);
 
-		// C'est beau jusqu'ici
-
-		var anciPos = node.p1.clone();
-
 		// Calculer la vraie vélocité après la projection
-		var vraiVol = new THREE.Vector3().subVectors(node.p1, anciPos);
+		var anciPos = node.p1.clone();
+		var vectAnciPos = new THREE.Vector3().subVectors(anciPos, node.p0);
+		var vectPosActu = new THREE.Vector3().subVectors(node.p1, node.p0);
+
+		//var vraiVol = new THREE.Vector3().subVectors(node.p1, anciPos);
+		var vraiVol = new THREE.Vector3().subVectors(vectPosActu, vectAnciPos);
+
 
 		// Remplacer l'ancienne vélocité par cette vraie vélocité projetée
 		node.vel = vraiVol.multiplyScalar(dt);
 
 		// Calculer l'angle de restitution de la branche
-		var normAnciPos = anciPos.clone().normalize();
-		var normNodep1 = node.p1.clone().normalize();
+		//var normAnciPos = anciPos.clone().normalize();
+		//var normNodep1 = node.p1.clone().normalize();
+		var normAnciPos = vectAnciPos.clone().normalize();
+		var normNodep1 = vectPosActu.clone().normalize();
+
 		var findRotResti = TP3.Geometry.findRotation(normAnciPos, normNodep1);
 		var axeResti = findRotResti[0];
 		var angleResti = findRotResti[1]**2;
